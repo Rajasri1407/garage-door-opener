@@ -1,0 +1,80 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <DHT.h>
+
+// OLED display setup
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// Pin definitions
+#define PIR_PIN 2
+#define GREEN_LED 3
+#define RED_LED 4
+#define DHTPIN 5
+#define DHTTYPE DHT11  // Change to DHT22 if you're using that
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  pinMode(PIR_PIN, INPUT);
+  pinMode(GREEN_LED, OUTPUT);
+  pinMode(RED_LED, OUTPUT);
+
+  Serial.begin(9600);
+  dht.begin();
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("Display initialization failed");
+    while (true);
+  }
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 10);
+  display.println("Initializing...");
+  display.display();
+  delay(1000);
+}
+
+void loop() {
+  int motion = digitalRead(PIR_PIN);
+  float temp = dht.readTemperature();
+  float humidity = dht.readHumidity();
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+
+  if (motion == HIGH) {
+    digitalWrite(GREEN_LED, HIGH);
+    digitalWrite(RED_LED, LOW);
+    display.setCursor(0, 0);
+    display.println("Door is opened");
+  } else {
+    digitalWrite(GREEN_LED, LOW);
+    digitalWrite(RED_LED, HIGH);
+    display.setCursor(0, 0);
+    display.println("Door is closed");
+  }
+
+  // Display temperature and humidity
+  display.setCursor(0, 20);
+  if (isnan(temp) || isnan(humidity)) {
+    display.println("Sensor error");
+  } else {
+    display.print("Temp: ");
+    display.print(temp);
+    display.println(" C");
+
+    display.print("Humidity: ");
+    display.print(humidity);
+    display.println(" %");
+  }
+
+  display.display();
+  delay(1000);  // Slightly longer delay to let sensor settle
+}
